@@ -26,3 +26,16 @@ dist-ssr
 # Virtual environments
 .venv/
 
+# Python cache and temporary files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
