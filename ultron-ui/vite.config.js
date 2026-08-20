@@ -1,11 +1,23 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react()],
+  resolve: {
+    alias: [
+      {
+        find: /^onnxruntime-web\/wasm$/,
+        replacement: fileURLToPath(new URL("./node_modules/onnxruntime-web/dist/ort.wasm.min.mjs", import.meta.url))
+      },
+      {
+        find: /^onnxruntime-web$/,
+        replacement: fileURLToPath(new URL("./node_modules/onnxruntime-web/dist/ort.all.min.mjs", import.meta.url))
+      }
+    ]
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

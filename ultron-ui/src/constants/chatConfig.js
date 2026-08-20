@@ -25,3 +25,13 @@ const getWsUrl = () => {
 
 export const WS_URL = getWsUrl();
 export const RECONNECT_DELAY_MS = 3000;
+
+// Silero VAD Configuration constants
+export const vadConfig = {
+  positiveSpeechThreshold: 0.7,
+  negativeSpeechThreshold: 0.4,
+  redemptionMs: 300,
+  preSpeechPadMs: 100,
+  minSpeechMs: 250,
+  submitUserSpeechOnPause: false
+};

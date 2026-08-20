@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useAudio } from "../hooks/useAudio";
+import { useVAD } from "../hooks/useVAD";
 import Orb from "../components/Voice/Orb";
 import AudioVisualizer from "../components/Voice/AudioVisualizer";
 import ChatWindow from "../components/Chat/ChatWindow";
@@ -14,7 +15,8 @@ import { WS_URL, chatboxConfig } from "../constants/chatConfig";
 function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [isWaitingForText, setIsWaitingForText] = useState(false);
-  const { queueAudioSegment, unlockAudioContext, isAudioActive, analyser, inputAnalyser } = useAudio();
+  const { queueAudioSegment, unlockAudioContext, isAudioActive, analyser } = useAudio();
+  const { probabilityRef } = useVAD();
 
   // Process message stream frames. useCallback prevents resetting WebSocket loops.
   const handleMessageReceived = useCallback((msg) => {
@@ -85,7 +87,7 @@ function ChatPage() {
           {/* Far-left telemetry sidebar graphs */}
           <div className="telemetry-sidebar">
             <AudioVisualizer
-              analyser={inputAnalyser}
+              probabilityRef={probabilityRef}
               isAudioActive={true}
               isProcessing={isProcessing}
               type="input"

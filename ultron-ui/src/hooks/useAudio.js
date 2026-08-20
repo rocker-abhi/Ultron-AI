@@ -15,40 +15,6 @@ export const useAudio = () => {
   const [isAudioActive, setIsAudioActive] = useState(false);
   const analyserRef = useRef(null);
 
-  const [inputAnalyser, setInputAnalyser] = useState(null);
-  const micStreamRef = useRef(null);
-  const sourceRef = useRef(null);
-
-  const startMicMonitoring = async () => {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) {
-      try {
-        if (!audioCtxRef.current) {
-          audioCtxRef.current = new AudioContextClass();
-        }
-        const ctx = audioCtxRef.current;
-        if (ctx.state === "suspended") {
-          await ctx.resume();
-        }
-
-        if (!micStreamRef.current) {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          micStreamRef.current = stream;
-
-          const source = ctx.createMediaStreamSource(stream);
-          sourceRef.current = source;
-
-          const analyser = ctx.createAnalyser();
-          analyser.fftSize = 64;
-          source.connect(analyser);
-          setInputAnalyser(analyser);
-        }
-      } catch (err) {
-        console.warn("Microphone monitoring start failed:", err);
-      }
-    }
-  };
-
   const unlockAudioContext = () => {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass) {
@@ -67,9 +33,6 @@ export const useAudio = () => {
           analyser.connect(audioCtxRef.current.destination);
           analyserRef.current = analyser;
         }
-
-        // Proactively request microphone access
-        startMicMonitoring();
       } catch (err) {
         console.warn("Failed to initialize or resume AudioContext:", err);
       }
@@ -84,16 +47,6 @@ export const useAudio = () => {
     return () => {
       window.removeEventListener("click", unlockAudioContext);
       window.removeEventListener("keydown", unlockAudioContext);
-
-      // Reclaim microphone tracks and disconnect nodes to prevent browser memory leaks
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach(track => track.stop());
-        micStreamRef.current = null;
-      }
-      if (sourceRef.current) {
-        sourceRef.current.disconnect();
-        sourceRef.current = null;
-      }
     };
   }, []);
 
@@ -160,8 +113,6 @@ export const useAudio = () => {
     queueAudioSegment,
     unlockAudioContext,
     isAudioActive,
-    analyser: analyserRef.current,
-    inputAnalyser,
-    startMicMonitoring
+    analyser: analyserRef.current
   };
 };

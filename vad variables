@@ -1,0 +1,7 @@
+Variable	Purpose
+positiveSpeechThreshold	Probability threshold for deciding speech started
+negativeSpeechThreshold	Probability threshold for deciding speech ended / not speech
+redemptionMs	How long silence can continue before ending speech
+preSpeechPadMs	Keeps some audio from before speech detection
+minSpeechMs	Minimum duration required for detected speech
+submitUserSpeechOnPause	Whether detected speech should be submitted when VAD pauses
