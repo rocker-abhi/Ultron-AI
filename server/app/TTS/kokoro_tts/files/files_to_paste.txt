@@ -1,0 +1,5 @@
+app/TTS/kokoro_tts/files/kokoro-v1.0.onnx
+app/TTS/kokoro_tts/files/voices-v1.0.bin
+
+
+paste the files here above the file names
