@@ -6,24 +6,30 @@ import { orbConfig } from "../../constants/chatConfig";
  * 
  * @param {Object} props - Component properties
  * @param {boolean} props.isOnline - Current connection status
+ * @param {boolean} props.isProcessing - Active processing state
  */
-function Orb({ isOnline }) {
+function Orb({ isOnline, isProcessing }) {
   const orbStyle = {
     transform: `scale3d(${orbConfig.scale}, ${orbConfig.scale}, 1) translate3d(${orbConfig.offsetX}, ${orbConfig.offsetY}, 0)`,
   };
 
-  return (
-    <div 
-      className={`agent-visualizer ${isOnline ? "online" : "offline"}`}
-      style={orbStyle}
-    >
-      {/* Single Slow Orbital Ring */}
-      <div className="orbital-ring ring-inner"></div>
+  const status = isOnline ? (isProcessing ? "processing" : "online") : "offline";
 
-      {/* AI Central Orb Core */}
-      <div className="core-orb">
-        <div className="core-orb-inner"></div>
-        <div className="core-orb-nucleus"></div>
+  return (
+    <div className="orb-wrapper">
+      {isProcessing && <div className="orb-processing-text">Processing...</div>}
+      <div 
+        className={`agent-visualizer ${status}`}
+        style={orbStyle}
+      >
+        {/* Single Slow Orbital Ring */}
+        <div className="orbital-ring ring-inner"></div>
+
+        {/* AI Central Orb Core */}
+        <div className="core-orb">
+          <div className="core-orb-inner"></div>
+          <div className="core-orb-nucleus"></div>
+        </div>
       </div>
     </div>
   );

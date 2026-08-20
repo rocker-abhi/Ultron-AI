@@ -149,6 +149,12 @@ html, body, #root {
   --glow-shadow: 0 0 10px rgba(255, 51, 80, 0.15);
 }
 
+/* Theme overrides for Processing State - Swaps colors to Orange */
+.agent-visualizer.processing {
+  --glow-color: #ff8c00; /* Dark Orange */
+  --glow-shadow: 0 0 15px rgba(255, 140, 0, 0.15);
+}
+
 /* Single Slow Orbital Ring - GPU accelerated with 3D layers and will-change */
 .orbital-ring {
   position: absolute;
@@ -228,15 +234,13 @@ html, body, #root {
   gap: 1rem;
 }
 
-/* Custom Scrollbar */
+/* Hide scrollbar for Firefox, IE/Edge, and WebKit/Blink browsers */
+.chat-messages {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
 .chat-messages::-webkit-scrollbar {
-  width: 4px;
-}
-.chat-messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-.chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  display: none;             /* Chrome, Safari, Opera */
 }
 
 .chat-message-wrapper {
@@ -367,6 +371,81 @@ html, body, #root {
 @keyframes pulse-glow {
   0%, 100% { opacity: 0.18; transform: scale3d(0.97, 0.97, 1) translate3d(0, 0, 0); }
   50% { opacity: 0.32; transform: scale3d(1.03, 1.03, 1) translate3d(0, 0, 0); }
+}
+
+.orb-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.orb-processing-text {
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ff8c00; /* Glowing Orange to match the processing state */
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  animation: pulse-opacity 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+.audio-visualizer-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle flat border */
+  background: rgba(0, 0, 0, 0.35);            /* Translucent dark core */
+  padding: 0.5rem;
+  width: 320px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  margin-top: 0.5rem; /* Reduced margin to look tighter when stacked */
+}
+
+.audio-visualizer-wrapper.input {
+  height: 150px; /* Big and highly visible! */
+}
+
+.audio-visualizer-wrapper.output {
+  height: 90px;
+}
+
+.visualizer-label {
+  position: absolute;
+  top: 6px;
+  left: 12px;
+  font-family: var(--font-family);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.audio-visualizer-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.telemetry-sidebar {
+  position: absolute;
+  left: 2rem;
+  top: 50%;
+  transform: translate3d(0, -50%, 0);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  z-index: 5;
+  pointer-events: auto;
 }
 
 

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useAudio } from "../hooks/useAudio";
 import Orb from "../components/Voice/Orb";
+import AudioVisualizer from "../components/Voice/AudioVisualizer";
 import ChatWindow from "../components/Chat/ChatWindow";
 import OfflineBanner from "../components/common/OfflineBanner";
 import { WS_URL, chatboxConfig } from "../constants/chatConfig";
@@ -12,7 +13,8 @@ import { WS_URL, chatboxConfig } from "../constants/chatConfig";
  */
 function ChatPage() {
   const [messages, setMessages] = useState([]);
-  const { queueAudioSegment, unlockAudioContext } = useAudio();
+  const [isWaitingForText, setIsWaitingForText] = useState(false);
+  const { queueAudioSegment, unlockAudioContext, isAudioActive, analyser, inputAnalyser } = useAudio();
 
   // Process message stream frames. useCallback prevents resetting WebSocket loops.
   const handleMessageReceived = useCallback((msg) => {
@@ -26,16 +28,28 @@ function ChatPage() {
       queueAudioSegment(msg.audio, bytes.buffer);
     } else {
       setMessages((prev) => [...prev, msg]);
+      // The final accumulated text message from the AI will have sender: "ai"
+      if (msg.sender === "ai") {
+        setIsWaitingForText(false);
+      }
     }
   }, [queueAudioSegment]);
 
   const { isOnline, sendMessage } = useWebSocket(WS_URL, handleMessageReceived);
+
+  // Clear waiting state if we disconnect to prevent the indicator from being stuck
+  useEffect(() => {
+    if (!isOnline) {
+      setIsWaitingForText(false);
+    }
+  }, [isOnline]);
 
   const handleSendMessage = (text) => {
     if (!text.trim() || !isOnline) return;
 
     // Explicit gesture-triggered AudioContext resume/initialization
     unlockAudioContext();
+    setIsWaitingForText(true);
 
     const messageData = {
       id: `user-${Date.now()}`,
@@ -46,6 +60,9 @@ function ChatPage() {
 
     sendMessage(messageData);
   };
+
+  // Determine if the client is currently processing a backend request (either text or active audio playback)
+  const isProcessing = isWaitingForText || isAudioActive;
 
   return (
     <>
@@ -58,10 +75,27 @@ function ChatPage() {
       {/* Main Split Interface Panels */}
       <div className="main-layout">
         
-        {/* Left Side: Orb Visualizer */}
+        {/* Left Side: Center Orb & Left-Aligned Telemetry Graphs */}
         <section className="left-panel">
+          {/* Centered AI core */}
           <div className="agent-stage">
-            <Orb isOnline={isOnline} />
+            <Orb isOnline={isOnline} isProcessing={isProcessing} />
+          </div>
+
+          {/* Far-left telemetry sidebar graphs */}
+          <div className="telemetry-sidebar">
+            <AudioVisualizer
+              analyser={inputAnalyser}
+              isAudioActive={true}
+              isProcessing={isProcessing}
+              type="input"
+            />
+            <AudioVisualizer
+              analyser={analyser}
+              isAudioActive={isAudioActive}
+              isProcessing={isProcessing}
+              type="output"
+            />
           </div>
         </section>
 

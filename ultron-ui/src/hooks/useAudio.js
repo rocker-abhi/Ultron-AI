@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { playWavBuffer } from "../utils/audio";
 import { playAudioTauri } from "../services/audioService";
 
@@ -6,12 +6,48 @@ import { playAudioTauri } from "../services/audioService";
  * Custom React hook to manage native and browser audio playback queuing,
  * along with AudioContext unlock gestures.
  * 
- * @returns {Object} Helper routines to enqueue audio chunks
+ * @returns {Object} Helper routines and state to track queue/playback status
  */
 export const useAudio = () => {
   const audioCtxRef = useRef(null);
   const audioQueueRef = useRef([]);
   const isAudioPlayingRef = useRef(false);
+  const [isAudioActive, setIsAudioActive] = useState(false);
+  const analyserRef = useRef(null);
+
+  const [inputAnalyser, setInputAnalyser] = useState(null);
+  const micStreamRef = useRef(null);
+  const sourceRef = useRef(null);
+
+  const startMicMonitoring = async () => {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      try {
+        if (!audioCtxRef.current) {
+          audioCtxRef.current = new AudioContextClass();
+        }
+        const ctx = audioCtxRef.current;
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+
+        if (!micStreamRef.current) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          micStreamRef.current = stream;
+
+          const source = ctx.createMediaStreamSource(stream);
+          sourceRef.current = source;
+
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 64;
+          source.connect(analyser);
+          setInputAnalyser(analyser);
+        }
+      } catch (err) {
+        console.warn("Microphone monitoring start failed:", err);
+      }
+    }
+  };
 
   const unlockAudioContext = () => {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -23,6 +59,17 @@ export const useAudio = () => {
         if (audioCtxRef.current.state === "suspended") {
           audioCtxRef.current.resume();
         }
+
+        // Initialize AnalyserNode on first click gesture so visualizer has data immediately
+        if (!analyserRef.current) {
+          const analyser = audioCtxRef.current.createAnalyser();
+          analyser.fftSize = 64;
+          analyser.connect(audioCtxRef.current.destination);
+          analyserRef.current = analyser;
+        }
+
+        // Proactively request microphone access
+        startMicMonitoring();
       } catch (err) {
         console.warn("Failed to initialize or resume AudioContext:", err);
       }
@@ -37,6 +84,16 @@ export const useAudio = () => {
     return () => {
       window.removeEventListener("click", unlockAudioContext);
       window.removeEventListener("keydown", unlockAudioContext);
+
+      // Reclaim microphone tracks and disconnect nodes to prevent browser memory leaks
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(track => track.stop());
+        micStreamRef.current = null;
+      }
+      if (sourceRef.current) {
+        sourceRef.current.disconnect();
+        sourceRef.current = null;
+      }
     };
   }, []);
 
@@ -44,10 +101,12 @@ export const useAudio = () => {
     if (isAudioPlayingRef.current) return;
     if (audioQueueRef.current.length === 0) {
       isAudioPlayingRef.current = false;
+      setIsAudioActive(false);
       return;
     }
 
     isAudioPlayingRef.current = true;
+    setIsAudioActive(true);
     const nextItem = audioQueueRef.current.shift();
 
     try {
@@ -64,7 +123,15 @@ export const useAudio = () => {
         }
         const ctx = audioCtxRef.current;
         if (ctx) {
-          playWavBuffer(nextItem.bytesBuffer, ctx, () => {
+          // Initialize Analyser if not already done
+          if (!analyserRef.current) {
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 64;
+            analyser.connect(ctx.destination);
+            analyserRef.current = analyser;
+          }
+
+          playWavBuffer(nextItem.bytesBuffer, ctx, analyserRef.current, () => {
             isAudioPlayingRef.current = false;
             processAudioQueue();
           });
@@ -81,6 +148,7 @@ export const useAudio = () => {
   };
 
   const queueAudioSegment = (audioBase64, bytesBuffer) => {
+    setIsAudioActive(true);
     audioQueueRef.current.push({
       audio: audioBase64,
       bytesBuffer: bytesBuffer
@@ -88,5 +156,12 @@ export const useAudio = () => {
     processAudioQueue();
   };
 
-  return { queueAudioSegment, unlockAudioContext };
+  return {
+    queueAudioSegment,
+    unlockAudioContext,
+    isAudioActive,
+    analyser: analyserRef.current,
+    inputAnalyser,
+    startMicMonitoring
+  };
 };

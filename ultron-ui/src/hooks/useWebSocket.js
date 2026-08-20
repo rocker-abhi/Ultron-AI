@@ -15,18 +15,41 @@ const notifyListeners = (event, ...args) => {
   });
 };
 
+let connectionTimeout = null;
+
 const connect = (url) => {
   if (globalWs) return;
+
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
 
   const ws = new WebSocket(url);
   globalWs = ws;
 
+  // Set active timeout: if server is down, avoid waiting for browser TCP timeout (which can take 10s+)
+  connectionTimeout = setTimeout(() => {
+    if (ws.readyState === WebSocket.CONNECTING) {
+      console.warn("WebSocket connection attempt timed out. Retrying...");
+      ws.close();
+    }
+  }, RECONNECT_DELAY_MS);
+
   ws.onopen = () => {
+    if (connectionTimeout) {
+      clearTimeout(connectionTimeout);
+      connectionTimeout = null;
+    }
     notifyListeners("onOpen");
     setupConsoleInterceptor(ws);
   };
 
   ws.onclose = () => {
+    if (connectionTimeout) {
+      clearTimeout(connectionTimeout);
+      connectionTimeout = null;
+    }
     globalWs = null;
     notifyListeners("onClose");
     
@@ -42,6 +65,10 @@ const connect = (url) => {
 
   ws.onerror = () => {
     notifyListeners("onError");
+    // Explicitly call close to force immediate onclose retry loop execution
+    try {
+      ws.close();
+    } catch (e) {}
   };
 
   ws.onmessage = (event) => {

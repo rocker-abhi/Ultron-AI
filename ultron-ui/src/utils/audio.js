@@ -3,9 +3,10 @@
  * 
  * @param {ArrayBuffer} arrayBuffer - Raw WAV binary buffer
  * @param {AudioContext} ctx - Web Audio Context instance
+ * @param {AnalyserNode} [analyser] - Optional AnalyserNode for audio visualization
  * @param {Function} [onEnded] - Callback fired when audio finishes playing
  */
-export const playWavBuffer = (arrayBuffer, ctx, onEnded) => {
+export const playWavBuffer = (arrayBuffer, ctx, analyser, onEnded) => {
   try {
     const dataView = new DataView(arrayBuffer);
     
@@ -112,7 +113,12 @@ export const playWavBuffer = (arrayBuffer, ctx, onEnded) => {
     
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(ctx.destination);
+    
+    if (analyser) {
+      source.connect(analyser);
+    } else {
+      source.connect(ctx.destination);
+    }
     
     if (onEnded) {
       source.onended = onEnded;
