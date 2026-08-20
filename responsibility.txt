@@ -1,0 +1,199 @@
+Frontend Developer Responsibilities
+UI Development
+Build responsive and interactive user interfaces.
+Convert designs/wireframes into working pages.
+Maintain consistent UI components.
+Frontend Architecture
+Structure the application into reusable components.
+Decide how components, pages, hooks, services, and utilities are organized.
+Keep the code maintainable and scalable.
+State Management
+Manage local and global application state.
+Handle loading, error, success, and empty states.
+Keep state as close as possible to where it's needed.
+API Integration
+Connect frontend applications with backend APIs.
+Handle REST APIs, WebSockets, streaming APIs, etc.
+Manage authentication and API errors.
+Performance
+Optimize rendering and bundle size.
+Lazy-load resources when appropriate.
+Avoid unnecessary API calls and re-renders.
+User Experience
+Provide responsive interactions.
+Implement proper loading indicators and feedback.
+Handle errors gracefully.
+Form Handling
+Build forms.
+Validate user input.
+Display validation errors.
+Submit data to backend services.
+Authentication & Authorization
+Login/logout.
+Manage tokens/sessions.
+Protect private routes.
+Handle user permissions.
+Testing
+Write unit tests.
+Test components.
+Test user interactions.
+Perform integration/end-to-end testing.
+Accessibility
+Support keyboard navigation.
+Use semantic HTML.
+Provide accessible labels and controls.
+Consider screen readers.
+Responsive Design
+Support desktop, tablet, and mobile.
+Handle different screen sizes and resolutions.
+Browser Compatibility
+Ensure the application works across supported browsers.
+Handle browser-specific issues when necessary.
+Security
+Prevent XSS and unsafe HTML rendering.
+Avoid exposing secrets in frontend code.
+Handle authentication securely.
+Validate data received from APIs.
+Build & Deployment
+Configure Vite/Webpack/etc.
+Manage environment variables.
+Optimize production builds.
+Deploy frontend applications.
+Code Quality
+Follow consistent coding standards.
+Use meaningful names.
+Keep components focused.
+Remove unnecessary complexity.
+Review and refactor code.
+
+
+
+Clean Frontend Rules
+Keep components small
+One component should have one clear responsibility.
+Avoid 500–1000 line components.
+Use meaningful names
+UserProfile ✅
+handleData2 ❌
+Keep business logic out of UI components
+Components should mainly handle UI.
+Move complex logic into hooks, services, or utilities.
+
+Separate responsibilities
+
+components/ → UI
+hooks/      → reusable state/logic
+services/   → API/WebSocket calls
+utils/      → pure helper functions
+types/      → types/interfaces
+pages/      → page composition
+Avoid unnecessary global state
+Keep state local when possible.
+Use global state only when multiple parts of the application need it.
+Don't duplicate code
+Extract genuinely reusable logic.
+Don't create abstractions just because two pieces look similar.
+Don't over-engineer
+Avoid unnecessary classes, factories, managers, and abstractions.
+Start simple and introduce complexity only when needed.
+
+Keep API logic separate
+
+// services/chat.js
+export async function sendMessage(message) {
+    // API call
+}
+
+Instead of putting API calls everywhere inside components.
+
+Keep components declarative
+
+Prefer:
+
+<ChatMessage message={message} />
+
+over putting lots of processing inside JSX.
+
+Avoid deeply nested components
+
+Don't create unnecessary layers like:
+
+Page
+ └── Container
+      └── Wrapper
+           └── Content
+                └── Component
+Keep files focused
+
+If a file contains:
+
+API calls
+UI
+WebSocket
+audio processing
+validation
+formatting
+
+it's probably doing too much.
+
+Handle loading/error/empty states
+
+Every API-driven UI should consider:
+
+Loading
+Success
+Empty
+Error
+Avoid magic values
+
+Instead of:
+
+setTimeout(fn, 5000);
+
+use:
+
+const AUDIO_TIMEOUT = 5000;
+Keep functions short
+A function should ideally do one thing.
+If you need a huge comment to explain what a function does, consider splitting it.
+Prefer composition over inheritance
+Build UI from small reusable components.
+Keep state transitions predictable
+
+Especially for things like:
+
+idle
+↓
+recording
+↓
+processing
+↓
+speaking
+↓
+idle
+Don't put secrets in frontend
+API keys, database credentials, private keys, etc. belong on the backend.
+Use a consistent folder structure
+
+Don't randomly decide where every new file goes.
+
+Delete unused code
+Don't keep old components, imports, functions, and commented-out implementations "just in case."
+Prefer simple solutions
+If 20 lines solve the problem, don't write 100 lines to make it "architectural."
+The golden rule
+Small components
+       +
+Simple functions
+       +
+Clear responsibilities
+       +
+Minimal state
+       +
+Separated API logic
+       +
+No unnecessary abstraction
+       =
+Clean frontend
+
+And one particularly useful rule for your projects:

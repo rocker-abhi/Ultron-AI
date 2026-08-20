@@ -32,10 +32,10 @@ class GROQClinet(Base):
             temperature=temperature
         )
     
-    def get_response(self, message):
+    async def get_response(self, message):
         try:
             logger.info("Streaming response from GROQ...")
-            for chunk in self.model.stream([HumanMessage(content=message)]):
+            async for chunk in self.model.astream([HumanMessage(content=message)]):
                 yield chunk.content
         except Exception as e:
             logger.error(f"Error calling Groq API: {e}")
@@ -44,9 +44,15 @@ class GROQClinet(Base):
 
 groq = GROQClinet(settings.GROQ_MODEL, settings.GROQ_API_KEY)
 
-if __name__ == '__main__':
-    # Test invocation of client
-    groq = GROQClinet(settings.GROQ_MODEL, settings.GROQ_API_KEY)
-    for chunk in groq.get_response("Hello, how are you?"):
+
+async def test_groq():
+    test_client = GROQClinet(settings.GROQ_MODEL, settings.GROQ_API_KEY)
+    async for chunk in test_client.get_response("Hello, how are you?"):
         print(chunk, end='')
     print()
+
+
+if __name__ == '__main__':
+    # Test invocation of client
+    import asyncio
+    asyncio.run(test_groq())

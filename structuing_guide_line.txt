@@ -1,0 +1,166 @@
+Frontend Structuring Guidelines
+
+Organize by responsibility
+
+components/  → reusable UI
+pages/       → screens/pages
+hooks/       → reusable logic
+services/    → API/WebSocket communication
+utils/       → generic helper functions
+types/       → shared types/interfaces
+assets/      → images/fonts/icons
+Keep components focused
+One component = one primary responsibility.
+Split large components into smaller components.
+Keep page components thin
+Pages should compose components.
+Avoid putting complex business logic directly inside pages.
+
+Separate UI from business logic
+
+UI Component
+    ↓
+Hook / Controller
+    ↓
+Service
+    ↓
+Backend API
+
+Keep API communication in services
+
+services/
+├── authService.js
+├── chatService.js
+├── userService.js
+└── ttsService.js
+
+Keep reusable logic in hooks
+
+hooks/
+├── useAuth.js
+├── useChat.js
+├── useWebSocket.js
+└── useAudio.js
+
+Keep utilities pure
+
+utils/
+├── formatDate.js
+├── formatTime.js
+└── validation.js
+Keep state close to its usage
+Local state → component.
+Shared state → appropriate state layer.
+Don't make everything global.
+
+Avoid circular dependencies
+
+Component → Hook → Service
+
+Avoid:
+
+Component → Service → Component
+Use clear naming
+ChatMessage.jsx ✅
+useAudioStream.js ✅
+chatService.js ✅
+helper2.js ❌
+common.js ❌
+
+Group related functionality
+
+For a chat feature:
+
+features/
+└── chat/
+    ├── components/
+    ├── hooks/
+    ├── services/
+    └── types/
+Don't create folders prematurely
+Create a folder when there is a real need for separation.
+Avoid having 20 folders containing one file each.
+
+Keep configuration separate
+
+config/
+├── api.js
+└── environment.js
+
+Keep constants separate
+
+constants/
+├── routes.js
+└── audio.js
+
+Keep assets separate
+
+assets/
+├── images/
+├── icons/
+└── fonts/
+A clean structure for your AI voice frontend
+
+Since you're working with Groq + TTS + WebSocket, I'd use:
+
+src/
+│
+├── components/
+│   ├── Chat/
+│   │   ├── ChatWindow.jsx
+│   │   ├── MessageList.jsx
+│   │   └── Message.jsx
+│   │
+│   ├── Voice/
+│   │   ├── RecordButton.jsx
+│   │   └── AudioPlayer.jsx
+│   │
+│   └── common/
+│
+├── pages/
+│   └── ChatPage.jsx
+│
+├── hooks/
+│   ├── useChat.js
+│   ├── useWebSocket.js
+│   └── useAudio.js
+│
+├── services/
+│   ├── chatService.js
+│   ├── websocketService.js
+│   └── ttsService.js
+│
+├── utils/
+│   ├── audio.js
+│   └── text.js
+│
+├── constants/
+│   └── audio.js
+│
+├── types/
+│   └── chat.js
+│
+├── assets/
+│
+└── App.jsx
+The main dependency direction
+
+Keep it roughly like:
+
+Pages
+  ↓
+Components
+  ↓
+Hooks
+  ↓
+Services
+  ↓
+Backend
+
+And:
+
+Utils / Types / Constants
+        ↑
+   used by others
+
+Avoid making everything depend on everything. That's probably the single biggest structuring rule for keeping a frontend pleasant to work on.

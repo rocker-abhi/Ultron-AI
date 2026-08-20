@@ -19,7 +19,7 @@ from voxi_speak import VoxiSpeaker
 voxi = VoxiSpeaker()
 
 # Global speed parameter to control speech pace
-SPEED = 1.4
+SPEED = 1.5
 
 # Available voice models in Voxi-TTS:
 # - neutral

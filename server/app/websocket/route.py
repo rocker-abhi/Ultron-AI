@@ -1,9 +1,17 @@
+import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.websocket.manager import ConnectionManager
 from app.core import logger
+from app.websocket.handler.text_handler import handle_text_event
 
 router = APIRouter()
 manager = ConnectionManager()
+
+# Mapping event types to their respective async handlers
+EVENT_HANDLERS = {
+    "text": handle_text_event
+}
+
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -16,8 +24,37 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             logger.info(f"Received message from {client_host}:{client_port} -> {data}")
-            # Broadcast the received message to all connected clients
-            await manager.broadcast(data)
+            
+            try:
+                # Parse incoming JSON payload
+                payload = json.loads(data)
+                
+                # Determine the event type (check for 'event', 'type', or default to 'text' if 'text' key is present)
+                event_type = payload.get("event") or payload.get("type")
+                
+                # Intercept client-side logs for debugging
+                if event_type == "log_error":
+                    logger.error(f"CLIENT ERROR LOG -> {payload.get('text', '')}")
+                    continue
+                elif event_type == "log_warn":
+                    logger.warning(f"CLIENT WARNING LOG -> {payload.get('text', '')}")
+                    continue
+                    
+                if not event_type and "text" in payload:
+                    event_type = "text"
+                
+                # Route to the registered event handler
+                if event_type in EVENT_HANDLERS:
+                    await EVENT_HANDLERS[event_type](payload, websocket)
+                else:
+                    logger.warning(f"No handler registered for event: '{event_type}'. Broadcasting as fallback.")
+                    await manager.broadcast(data)
+                    
+            except json.JSONDecodeError:
+                # Fallback if the received data is a raw non-JSON string
+                logger.info(f"Raw string received: '{data}'. Broadcasting as fallback.")
+                await manager.broadcast(data)
+                
     except WebSocketDisconnect:
         logger.info(f"WebSocket client {client_host}:{client_port} disconnected")
         manager.disconnect(websocket)

@@ -13,7 +13,8 @@ from app.TTS.kokoro_tts.kokoro_plugin import convert_to_sample, samples_to_wav
 class KokoroClient(TTS_BASE):
 
     def convert_to_audio_bytes(self, text: str):
-        samples, sample_rate = convert_to_sample(text)
+        filtered_text = self.filter(text)
+        samples, sample_rate = convert_to_sample(filtered_text)
         return samples_to_wav(samples, sample_rate)
 
 

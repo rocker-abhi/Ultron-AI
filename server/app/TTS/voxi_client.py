@@ -12,8 +12,10 @@ from app.TTS.voxi_tts.voxi_plugin import convert_to_sample, samples_to_wav
 
 class VoxiClient(TTS_BASE):
 
-    def convert_to_audio_bytes(self, text: str):
-        sample, sample_rate = convert_to_sample(text)
+    @staticmethod
+    def convert_to_audio_bytes(text: str):
+        filtered_text = VoxiClient.filter(text)
+        sample, sample_rate = convert_to_sample(filtered_text)
         return samples_to_wav(sample, sample_rate)
 
 
