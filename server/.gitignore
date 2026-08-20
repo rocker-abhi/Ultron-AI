@@ -1,0 +1,20 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environment configurations
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Large model binaries
+app/TTS/kokoro_tts/files/kokoro-v1.0.onnx
+app/TTS/kokoro_tts/files/voices-v1.0.bin
+
+# Audio outputs
+*.wav
