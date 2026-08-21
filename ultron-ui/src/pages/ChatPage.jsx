@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useAudio } from "../hooks/useAudio";
 import { useVAD } from "../hooks/useVAD";
+import { utils } from "@ricky0123/vad-react";
 import Orb from "../components/Voice/Orb";
 import AudioVisualizer from "../components/Voice/AudioVisualizer";
 import ChatWindow from "../components/Chat/ChatWindow";
@@ -16,7 +17,6 @@ function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [isWaitingForText, setIsWaitingForText] = useState(false);
   const { queueAudioSegment, unlockAudioContext, isAudioActive, analyser } = useAudio();
-  const { probabilityRef } = useVAD();
 
   // Process message stream frames. useCallback prevents resetting WebSocket loops.
   const handleMessageReceived = useCallback((msg) => {
@@ -38,6 +38,22 @@ function ChatPage() {
   }, [queueAudioSegment]);
 
   const { isOnline, sendMessage } = useWebSocket(WS_URL, handleMessageReceived);
+
+  const handleSpeechEnd = useCallback((audio) => {
+    // Encode Float32Array speech to standard 16-bit PCM WAV (format = 1, sampleRate = 16000)
+    const wavBuffer = utils.encodeWAV(audio, 1, 16000, 1, 16);
+    const base64Audio = utils.arrayBufferToBase64(wavBuffer);
+    
+    sendMessage({
+      event: "audio",
+      audio: base64Audio
+    });
+    
+    setIsWaitingForText(true);
+    unlockAudioContext();
+  }, [sendMessage, unlockAudioContext]);
+
+  const { probabilityRef } = useVAD(handleSpeechEnd);
 
   // Clear waiting state if we disconnect to prevent the indicator from being stuck
   useEffect(() => {

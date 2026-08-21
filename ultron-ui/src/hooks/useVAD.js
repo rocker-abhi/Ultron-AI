@@ -13,7 +13,7 @@ ort.env.wasm.wasmPaths = window.location.origin + "/";
  * 
  * @returns {Object} VAD controllers, status flags, and the probability ref
  */
-export const useVAD = () => {
+export const useVAD = (onSpeechEndCallback) => {
   const probabilityRef = useRef(0);
   const [isListening, setIsListening] = useState(false);
 
@@ -35,8 +35,11 @@ export const useVAD = () => {
     onSpeechStart: () => {
       console.log("Silero VAD: Speech started");
     },
-    onSpeechEnd: () => {
+    onSpeechEnd: (audio) => {
       console.log("Silero VAD: Speech ended");
+      if (onSpeechEndCallback) {
+        onSpeechEndCallback(audio);
+      }
     }
   });
 

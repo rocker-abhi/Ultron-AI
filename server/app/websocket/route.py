@@ -3,13 +3,15 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.websocket.manager import ConnectionManager
 from app.core import logger
 from app.websocket.handler.text_handler import handle_text_event
+from app.websocket.handler.voice_handler import handle_audio
 
 router = APIRouter()
 manager = ConnectionManager()
 
 # Mapping event types to their respective async handlers
 EVENT_HANDLERS = {
-    "text": handle_text_event
+    "text": handle_text_event,
+    "audio": handle_audio
 }
 
 

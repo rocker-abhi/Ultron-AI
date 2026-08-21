@@ -4,6 +4,8 @@ import ctypes
 import site
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
+# Add parent directory containing the 'app' module to sys.path to enable absolute imports when run directly
+sys.path.insert(0, os.path.abspath(os.path.join(script_dir, "..", "..")))
 
 def preload_cuda_libraries():
     proj_root = os.path.abspath(os.path.join(script_dir, "..", ".."))
@@ -45,7 +47,7 @@ def preload_cuda_libraries():
 preload_cuda_libraries()
 
 from faster_whisper import WhisperModel
-from .base_sst import BaseSST
+from app.SST.base_sst import BaseSST
 
 class WisperBase(BaseSST):
 
