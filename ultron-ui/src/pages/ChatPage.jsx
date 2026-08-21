@@ -71,7 +71,7 @@ function ChatPage() {
     unlockAudioContext();
   }, [sendMessage, unlockAudioContext]);
 
-  const { probabilityRef } = useVAD(handleSpeechEnd, handleSpeechStart);
+  const { probabilityRef, pause, start } = useVAD(handleSpeechEnd, handleSpeechStart);
 
   // Clear waiting state if we disconnect to prevent the indicator from being stuck
   useEffect(() => {
@@ -79,6 +79,24 @@ function ChatPage() {
       setIsWaitingForText(false);
     }
   }, [isOnline]);
+
+  // Control VAD activity dynamically depending on connection online state
+  useEffect(() => {
+    if (isOnline) {
+      if (start) {
+        start();
+        console.log("VAD: Connection established. Speech detection active.");
+      }
+    } else {
+      if (pause) {
+        pause();
+        console.log("VAD: Connection offline. Speech detection suspended.");
+      }
+      if (probabilityRef) {
+        probabilityRef.current = 0; // Keep the VAD telemetry graph flat at 0%
+      }
+    }
+  }, [isOnline, start, pause, probabilityRef]);
 
   const handleSendMessage = (text) => {
     if (!text.trim() || !isOnline) return;
