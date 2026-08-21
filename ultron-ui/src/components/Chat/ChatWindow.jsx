@@ -11,19 +11,20 @@ import stopIcon from "../../assets/icons/stop-white.svg";
  * @param {Array} props.messages - Active message payload list
  * @param {Function} props.onSendMessage - Dispatch text handler callback
  */
-function ChatWindow({ isOnline, messages, onSendMessage }) {
+function ChatWindow({ isOnline, messages, onSendMessage, isProcessing, onStopProcessing }) {
   const [inputText, setInputText] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!isOnline) return;
     
-    if (inputText.trim()) {
+    if (isProcessing) {
+      if (onStopProcessing) {
+        onStopProcessing();
+      }
+    } else if (inputText.trim()) {
       onSendMessage(inputText);
       setInputText("");
-    } else {
-      // Optional: Handle "Stop" action if required
-      console.log("Stop action triggered.");
     }
   };
 
@@ -45,12 +46,12 @@ function ChatWindow({ isOnline, messages, onSendMessage }) {
         <button 
           type="submit" 
           disabled={!isOnline} 
-          className="chat-send-btn"
-          title={inputText.trim() ? "Send message" : "Stop processing"}
+          className={`chat-send-btn ${isProcessing ? "stop-btn" : ""}`}
+          title={isProcessing ? "Stop processing" : "Send message"}
         >
           <img 
-            src={inputText.trim() ? sendIcon : stopIcon} 
-            alt={inputText.trim() ? "Send" : "Stop"} 
+            src={isProcessing ? stopIcon : sendIcon} 
+            alt={isProcessing ? "Stop" : "Send"} 
             className="btn-icon"
           />
         </button>

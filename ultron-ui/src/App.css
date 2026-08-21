@@ -111,8 +111,11 @@ html, body, #root {
 .agent-stage {
   pointer-events: auto; /* Restores clicks specifically on the visualizer */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1.5rem;
+  position: relative;
 }
 
 /* Right Panel - Positioned absolutely on the right side, occupying 30% width */
@@ -446,6 +449,17 @@ html, body, #root {
   gap: 1.25rem;
   z-index: 5;
   pointer-events: auto;
+}
+
+.chat-send-btn.stop-btn:not(:disabled) {
+  border-color: rgba(255, 51, 80, 0.4);
+  background: rgba(255, 51, 80, 0.1);
+}
+
+.chat-send-btn.stop-btn:hover:not(:disabled) {
+  border-color: rgba(255, 51, 80, 0.75);
+  background: rgba(255, 51, 80, 0.25);
+  box-shadow: 0 0 10px rgba(255, 51, 80, 0.3);
 }
 
 

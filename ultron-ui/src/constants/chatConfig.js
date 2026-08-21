@@ -11,7 +11,7 @@ export const orbConfig = {
 // Global configuration for the Chatbox UI
 export const chatboxConfig = {
   // Dynamic width of the chatbox panel
-  width: "15%",
+  width: "20%",
 };
 
 // Network / Retry configuration constants
@@ -29,8 +29,8 @@ export const RECONNECT_DELAY_MS = 3000;
 // Silero VAD Configuration constants
 export const vadConfig = {
   positiveSpeechThreshold: 0.7,
-  negativeSpeechThreshold: 0.4,
-  redemptionMs: 300,
+  negativeSpeechThreshold: 0.2,
+  redemptionMs: 1000,
   preSpeechPadMs: 100,
   minSpeechMs: 250,
   submitUserSpeechOnPause: false

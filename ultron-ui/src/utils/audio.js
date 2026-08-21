@@ -125,8 +125,10 @@ export const playWavBuffer = (arrayBuffer, ctx, analyser, onEnded) => {
     }
     
     source.start(0);
+    return source;
   } catch (err) {
     console.error("PCM manual decoding failed:", err);
     if (onEnded) onEnded();
+    return null;
   }
 };

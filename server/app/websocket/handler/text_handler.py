@@ -7,11 +7,7 @@ from fastapi import WebSocket
 from app.LLM.groq_client import groq
 from app.TTS.voxi_client import VoxiClient
 
-# Queue to hold text sentences ready for Text-to-Speech conversion
-text_queue = asyncio.Queue()
-
-
-async def llm_producer(text: str, websocket: WebSocket):
+async def llm_producer(text: str, websocket: WebSocket, queue: asyncio.Queue):
     full_response = ""
     logger.info("Starting LLM stream processing...")
     
@@ -27,12 +23,12 @@ async def llm_producer(text: str, websocket: WebSocket):
         if any(d in chunk for d in sentence_delimiters) or len(current_sentence) > 100:
             sentence_to_send = current_sentence.strip()
             if sentence_to_send:
-                await text_queue.put(sentence_to_send)
+                await queue.put(sentence_to_send)
             current_sentence = ""
             
     # Send any remaining text left in the buffer
     if current_sentence.strip():
-        await text_queue.put(current_sentence.strip())
+        await queue.put(current_sentence.strip())
     
     # Generate timestamp matching frontend format (e.g., "04:30 PM" -> "4:30 PM")
     timestamp = datetime.datetime.now().strftime("%I:%M %p")
@@ -49,11 +45,11 @@ async def llm_producer(text: str, websocket: WebSocket):
     await websocket.send_text(json.dumps(ai_payload))
 
 
-async def tts_consumer(websocket: WebSocket):
+async def tts_consumer(websocket: WebSocket, queue: asyncio.Queue):
     while True:
-        text = await text_queue.get()
+        text = await queue.get()
         if text is None:
-            text_queue.task_done()
+            queue.task_done()
             break
             
         logger.info(f"Synthesizing audio for sentence: '{text}'")
@@ -73,7 +69,7 @@ async def tts_consumer(websocket: WebSocket):
         except Exception as e:
             logger.error(f"Error in TTS synthesis: {e}")
         finally:
-            text_queue.task_done()
+            queue.task_done()
 
 
 # Handler for text event
@@ -84,14 +80,20 @@ async def handle_text_event(payload: dict, websocket: WebSocket):
     # Send the user's message back to the specific client so it appears in the chat UI
     await websocket.send_text(json.dumps(payload))
 
+    # Connection-isolated queue for sentence buffering
+    local_queue = asyncio.Queue()
+
     # Spawn the tts_consumer task in the background
-    consumer_task = asyncio.create_task(tts_consumer(websocket))
+    consumer_task = asyncio.create_task(tts_consumer(websocket, local_queue))
 
     try:
         # Trigger LLM response generation and wait for completion
-        await llm_producer(text, websocket)
+        await llm_producer(text, websocket, local_queue)
+    except asyncio.CancelledError:
+        logger.info("Handler [text] -> Task execution was cancelled.")
+        raise
     finally:
         # Put None into the queue to signal consumer completion
-        await text_queue.put(None)
+        await local_queue.put(None)
         # Wait for the background tts_consumer task to finish clean up
         await consumer_task

@@ -14,6 +14,23 @@ export const useAudio = () => {
   const isAudioPlayingRef = useRef(false);
   const [isAudioActive, setIsAudioActive] = useState(false);
   const analyserRef = useRef(null);
+  const activeSourceRef = useRef(null);
+
+  const stopAudio = () => {
+    audioQueueRef.current = [];
+    isAudioPlayingRef.current = false;
+    setIsAudioActive(false);
+
+    if (activeSourceRef.current) {
+      try {
+        activeSourceRef.current.onended = null;
+        activeSourceRef.current.stop();
+      } catch (err) {
+        console.warn("Failed to stop active source node:", err);
+      }
+      activeSourceRef.current = null;
+    }
+  };
 
   const unlockAudioContext = () => {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -84,7 +101,8 @@ export const useAudio = () => {
             analyserRef.current = analyser;
           }
 
-          playWavBuffer(nextItem.bytesBuffer, ctx, analyserRef.current, () => {
+          activeSourceRef.current = playWavBuffer(nextItem.bytesBuffer, ctx, analyserRef.current, () => {
+            activeSourceRef.current = null;
             isAudioPlayingRef.current = false;
             processAudioQueue();
           });
@@ -112,6 +130,7 @@ export const useAudio = () => {
   return {
     queueAudioSegment,
     unlockAudioContext,
+    stopAudio,
     isAudioActive,
     analyser: analyserRef.current
   };

@@ -16,7 +16,7 @@ import { WS_URL, chatboxConfig } from "../constants/chatConfig";
 function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [isWaitingForText, setIsWaitingForText] = useState(false);
-  const { queueAudioSegment, unlockAudioContext, isAudioActive, analyser } = useAudio();
+  const { queueAudioSegment, unlockAudioContext, stopAudio, isAudioActive, analyser } = useAudio();
 
   // Process message stream frames. useCallback prevents resetting WebSocket loops.
   const handleMessageReceived = useCallback((msg) => {
@@ -39,6 +39,24 @@ function ChatPage() {
 
   const { isOnline, sendMessage } = useWebSocket(WS_URL, handleMessageReceived);
 
+  const handleStopProcessing = useCallback(() => {
+    // 1. Stop local audio player & clear queue
+    stopAudio();
+    
+    // 2. Send interrupt signal to backend
+    sendMessage({ event: "interrupt" });
+    
+    // 3. Reset processing state
+    setIsWaitingForText(false);
+  }, [stopAudio, sendMessage]);
+
+  const handleSpeechStart = useCallback(() => {
+    console.log("VAD: Speech start detected. Auto-interrupting current processing...");
+    stopAudio();
+    sendMessage({ event: "interrupt" });
+    setIsWaitingForText(false);
+  }, [stopAudio, sendMessage]);
+
   const handleSpeechEnd = useCallback((audio) => {
     // Encode Float32Array speech to standard 16-bit PCM WAV (format = 1, sampleRate = 16000)
     const wavBuffer = utils.encodeWAV(audio, 1, 16000, 1, 16);
@@ -53,7 +71,7 @@ function ChatPage() {
     unlockAudioContext();
   }, [sendMessage, unlockAudioContext]);
 
-  const { probabilityRef } = useVAD(handleSpeechEnd);
+  const { probabilityRef } = useVAD(handleSpeechEnd, handleSpeechStart);
 
   // Clear waiting state if we disconnect to prevent the indicator from being stuck
   useEffect(() => {
@@ -123,6 +141,8 @@ function ChatPage() {
             isOnline={isOnline}
             messages={messages}
             onSendMessage={handleSendMessage}
+            isProcessing={isProcessing}
+            onStopProcessing={handleStopProcessing}
           />
         </section>
 
