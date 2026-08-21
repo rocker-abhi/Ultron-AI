@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useAudio } from "../hooks/useAudio";
 import { useVAD } from "../hooks/useVAD";
@@ -16,18 +16,29 @@ import { WS_URL, chatboxConfig } from "../constants/chatConfig";
 function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [isWaitingForText, setIsWaitingForText] = useState(false);
+  const [isVadEnabled, setIsVadEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const { queueAudioSegment, unlockAudioContext, stopAudio, isAudioActive, analyser } = useAudio();
+
+  const isAudioEnabledRef = useRef(true);
+  useEffect(() => {
+    isAudioEnabledRef.current = isAudioEnabled;
+  }, [isAudioEnabled]);
 
   // Process message stream frames. useCallback prevents resetting WebSocket loops.
   const handleMessageReceived = useCallback((msg) => {
     if (msg.audio) {
-      // Decode base64 to byte buffer
-      const binaryString = atob(msg.audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      if (isAudioEnabledRef.current) {
+        // Decode base64 to byte buffer
+        const binaryString = atob(msg.audio);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        queueAudioSegment(msg.audio, bytes.buffer);
+      } else {
+        console.log("VAD settings: Audio output is muted. Skipping playback.");
       }
-      queueAudioSegment(msg.audio, bytes.buffer);
     } else {
       setMessages((prev) => [...prev, msg]);
       // The final accumulated text message from the AI will have sender: "ai"
@@ -80,9 +91,9 @@ function ChatPage() {
     }
   }, [isOnline]);
 
-  // Control VAD activity dynamically depending on connection online state
+  // Control VAD activity dynamically depending on connection online state and configuration setting
   useEffect(() => {
-    if (isOnline) {
+    if (isOnline && isVadEnabled) {
       if (start) {
         start();
         console.log("VAD: Connection established. Speech detection active.");
@@ -90,13 +101,13 @@ function ChatPage() {
     } else {
       if (pause) {
         pause();
-        console.log("VAD: Connection offline. Speech detection suspended.");
+        console.log("VAD: Connection offline or disabled. Speech detection suspended.");
       }
       if (probabilityRef) {
         probabilityRef.current = 0; // Keep the VAD telemetry graph flat at 0%
       }
     }
-  }, [isOnline, start, pause, probabilityRef]);
+  }, [isOnline, isVadEnabled, start, pause, probabilityRef]);
 
   const handleSendMessage = (text) => {
     if (!text.trim() || !isOnline) return;
@@ -161,6 +172,10 @@ function ChatPage() {
             onSendMessage={handleSendMessage}
             isProcessing={isProcessing}
             onStopProcessing={handleStopProcessing}
+            isVadEnabled={isVadEnabled}
+            onToggleVad={setIsVadEnabled}
+            isAudioEnabled={isAudioEnabled}
+            onToggleAudio={setIsAudioEnabled}
           />
         </section>
 

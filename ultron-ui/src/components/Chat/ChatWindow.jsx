@@ -11,7 +11,17 @@ import stopIcon from "../../assets/icons/stop-white.svg";
  * @param {Array} props.messages - Active message payload list
  * @param {Function} props.onSendMessage - Dispatch text handler callback
  */
-function ChatWindow({ isOnline, messages, onSendMessage, isProcessing, onStopProcessing }) {
+function ChatWindow({ 
+  isOnline, 
+  messages, 
+  onSendMessage, 
+  isProcessing, 
+  onStopProcessing,
+  isVadEnabled,
+  onToggleVad,
+  isAudioEnabled,
+  onToggleAudio
+}) {
   const [inputText, setInputText] = useState("");
 
   const handleSubmit = (e) => {
@@ -30,6 +40,35 @@ function ChatWindow({ isOnline, messages, onSendMessage, isProcessing, onStopPro
 
   return (
     <div className="chatbox-wrapper">
+      {/* Console settings and status header */}
+      <div className="chatbox-header">
+        <div className="header-title">Ultron Console</div>
+        <div className="console-toggles">
+          <div className="toggle-container" title="Toggle voice activity speech detection">
+            <span className="toggle-label">VAD</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={isVadEnabled} 
+                onChange={(e) => onToggleVad(e.target.checked)} 
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+          <div className="toggle-container" title="Toggle audio voice playback (Speaker)">
+            <span className="toggle-label">AUDIO</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={isAudioEnabled} 
+                onChange={(e) => onToggleAudio(e.target.checked)} 
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       {/* Scrollable messages history */}
       <MessageList messages={messages} />
 
