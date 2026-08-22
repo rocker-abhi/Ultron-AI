@@ -4,11 +4,13 @@ from app.websocket.manager import ConnectionManager
 from app.core import logger
 from app.websocket.handler.text_handler import handle_text_event
 from app.websocket.handler.voice_handler import handle_audio
+from app.discord.discordBotHandler import DiscordBot
 
 import asyncio
 
 router = APIRouter()
 manager = ConnectionManager()
+discord_bot = DiscordBot()
 
 # Global dictionary to track active tasks per websocket connection
 active_tasks = {}
@@ -33,18 +35,23 @@ async def websocket_endpoint(websocket: WebSocket):
             logger.info(f"Received message from {client_host}:{client_port} -> {data}")
             
             try:
+                # raise Exception("Testing Discord Bot")
                 # Parse incoming JSON payload
                 payload = json.loads(data)
                 
                 # Determine the event type (check for 'event', 'type', or default to 'text' if 'text' key is present)
                 event_type = payload.get("event") or payload.get("type")
-                
-                # Intercept client-side logs for debugging
+                # raise Exception("Testing Discord Bot")
+                # Intercept client-side logs for debugging and Discord alerts
                 if event_type == "log_error":
-                    logger.error(f"CLIENT ERROR LOG -> {payload.get('text', '')}")
+                    msg = payload.get("text", "")
+                    logger.error(f"CLIENT ERROR LOG -> {msg}")
+                    discord_bot.send(f"⚠️ **Client Error**: {msg}")
                     continue
                 elif event_type == "log_warn":
-                    logger.warning(f"CLIENT WARNING LOG -> {payload.get('text', '')}")
+                    msg = payload.get("text", "")
+                    logger.warning(f"CLIENT WARNING LOG -> {msg}")
+                    discord_bot.send(f"⚠️ **Client Warning**: {msg}")
                     continue
                     
                 if not event_type and "text" in payload:
@@ -98,7 +105,9 @@ async def websocket_endpoint(websocket: WebSocket):
             old_task.cancel()
         manager.disconnect(websocket)
     except Exception as e:
-        logger.error(f"Error handling WebSocket client {client_host}:{client_port}: {e}")
+        error_msg = f"Error handling WebSocket client {client_host}:{client_port}: {e}"
+        logger.error(error_msg)
+        discord_bot.send(f"🚨 **Server Exception**: {error_msg}")
         old_task = active_tasks.pop(websocket, None)
         if old_task and not old_task.done():
             old_task.cancel()

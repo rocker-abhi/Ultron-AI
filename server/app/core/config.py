@@ -16,5 +16,7 @@ class Settings:
     SERVER_PORT: int = int(os.getenv("SERVER_PORT", 8000))
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL","groq/compound")
+    DISCORD_WEBHOOK_URL: str = os.getenv("DISCORD_WEBHOOK_URL")
+    DISCORD_USERNAME: str = os.getenv("DISCORD_USERNAME")
 
 settings = Settings()
