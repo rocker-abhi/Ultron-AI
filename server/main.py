@@ -2,7 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import uvicorn
 from app.websocket.route import router as websocket_router
+from app.routes import router as api_router
 from app.core import logger, settings
+from app.core.exceptions import register_exception_handlers
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,8 +19,27 @@ app = FastAPI(
 )
 logger.info(f"Initializing '{settings.SERVER_APP_NAME}' application...")
 
+# Configure CORS settings to support http://localhost:1420/ and local dev hosts
+origins = [
+    "http://localhost:1420",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register global exception handling middleware mapping
+register_exception_handlers(app)
+
 app.include_router(websocket_router)
 logger.info("WebSocket router registered successfully.")
+
+app.include_router(api_router)
+logger.info("Auth API router registered successfully.")
 
 if __name__ == "__main__":
     logger.info("Starting Uvicorn server...")

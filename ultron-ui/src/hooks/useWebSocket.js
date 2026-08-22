@@ -45,13 +45,20 @@ const connect = (url) => {
     setupConsoleInterceptor(ws);
   };
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
     if (connectionTimeout) {
       clearTimeout(connectionTimeout);
       connectionTimeout = null;
     }
     globalWs = null;
     notifyListeners("onClose");
+    
+    // Intercept session invalidation or tab lock collision close code
+    if (event && event.code === 4001) {
+      console.warn("WebSocket closed due to session invalidation or tab ID mismatch. Suppressing reconnect.");
+      window.dispatchEvent(new Event("ultron_session_invalid"));
+      return;
+    }
     
     // Clear any pending timeout and reschedule
     if (reconnectTimeout) {
@@ -88,15 +95,38 @@ const connect = (url) => {
   };
 };
 
+const disconnect = () => {
+  if (globalWs) {
+    globalWs.onclose = null;
+    globalWs.onerror = null;
+    globalWs.onmessage = null;
+    globalWs.onopen = null;
+    try {
+      globalWs.close();
+    } catch (e) {}
+    globalWs = null;
+  }
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+  if (connectionTimeout) {
+    clearTimeout(connectionTimeout);
+    connectionTimeout = null;
+  }
+  notifyListeners("onClose");
+};
+
 /**
  * Custom React hook to manage WebSocket connection, reconnect cycles,
  * and console log forwarding.
  * 
  * @param {string} url - Target connection endpoint
  * @param {Function} onMessageReceived - Callback when a payload arrives
+ * @param {boolean} [enabled=true] - Flag to connect/disconnect socket conditionally
  * @returns {Object} Connection state and message dispatch trigger
  */
-export const useWebSocket = (url, onMessageReceived) => {
+export const useWebSocket = (url, onMessageReceived, enabled = true) => {
   const [isOnline, setIsOnline] = useState(
     globalWs !== null && globalWs.readyState === WebSocket.OPEN
   );
@@ -108,6 +138,12 @@ export const useWebSocket = (url, onMessageReceived) => {
   }, [onMessageReceived]);
 
   useEffect(() => {
+    if (!enabled) {
+      setIsOnline(false);
+      disconnect();
+      return;
+    }
+
     const callbacks = {
       onOpen: () => setIsOnline(true),
       onClose: () => setIsOnline(false),
@@ -124,15 +160,14 @@ export const useWebSocket = (url, onMessageReceived) => {
     // Sync initial state if connection is already open
     if (globalWs && globalWs.readyState === WebSocket.OPEN) {
       setIsOnline(true);
+    } else {
+      connect(url);
     }
-
-    // Initialize connection
-    connect(url);
 
     return () => {
       listeners.delete(callbacks);
     };
-  }, [url]);
+  }, [url, enabled]);
 
   const sendMessage = (payload) => {
     if (globalWs && globalWs.readyState === WebSocket.OPEN) {

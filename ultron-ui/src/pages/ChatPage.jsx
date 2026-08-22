@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useAudio } from "../hooks/useAudio";
 import { useVAD } from "../hooks/useVAD";
+import LoginModal from "../components/Auth/LoginModal";
 import { utils } from "@ricky0123/vad-react";
 import Orb from "../components/Voice/Orb";
 import AudioVisualizer from "../components/Voice/AudioVisualizer";
@@ -14,10 +15,26 @@ import { WS_URL, chatboxConfig } from "../constants/chatConfig";
  * Sets up hooks, aggregates state, and constructs split visualizer panels.
  */
 function ChatPage() {
+  // Ensure unique tab identifier exists for this tab context synchronously
+  let tabId = sessionStorage.getItem("ultron_tab_id");
+  if (!tabId) {
+    tabId = "tab_" + Math.random().toString(36).substring(2, 15);
+    sessionStorage.setItem("ultron_tab_id", tabId);
+  }
+
   const [messages, setMessages] = useState([]);
   const [isWaitingForText, setIsWaitingForText] = useState(false);
   const [isVadEnabled, setIsVadEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const session = localStorage.getItem("ultron_session");
+    const sessionTabId = localStorage.getItem("ultron_session_tab_id");
+    const currentTabId = sessionStorage.getItem("ultron_tab_id");
+    return !!session && sessionTabId === currentTabId;
+  });
+  const [username, setUsername] = useState(
+    () => localStorage.getItem("ultron_session") || ""
+  );
   const { queueAudioSegment, unlockAudioContext, stopAudio, isAudioActive, analyser } = useAudio();
 
   const isAudioEnabledRef = useRef(true);
@@ -25,8 +42,18 @@ function ChatPage() {
     isAudioEnabledRef.current = isAudioEnabled;
   }, [isAudioEnabled]);
 
+  const isAuthenticatedRef = useRef(false);
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
+
   // Process message stream frames. useCallback prevents resetting WebSocket loops.
   const handleMessageReceived = useCallback((msg) => {
+    if (!isAuthenticatedRef.current) {
+      console.log("Session settings: Unauthenticated client received message. Discarding.");
+      return;
+    }
+
     if (msg.audio) {
       if (isAudioEnabledRef.current) {
         // Decode base64 to byte buffer
@@ -48,7 +75,41 @@ function ChatPage() {
     }
   }, [queueAudioSegment]);
 
-  const { isOnline, sendMessage } = useWebSocket(WS_URL, handleMessageReceived);
+  const sessionId = localStorage.getItem("ultron_session_id") || "";
+  const currentTabId = sessionStorage.getItem("ultron_tab_id") || "";
+  const dynamicWsUrl = `${WS_URL}?session_id=${sessionId}&tab_id=${currentTabId}`;
+
+  const { isOnline, sendMessage } = useWebSocket(dynamicWsUrl, handleMessageReceived, isAuthenticated);
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    setUsername(localStorage.getItem("ultron_session") || "admin");
+  };
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("ultron_session");
+    localStorage.removeItem("ultron_session_id");
+    localStorage.removeItem("ultron_session_tab_id");
+    setIsAuthenticated(false);
+    setUsername("");
+    // Stop local audio player & clear queue
+    stopAudio();
+    // Send interrupt signal to backend
+    sendMessage({ event: "interrupt" });
+    setIsWaitingForText(false);
+  }, [stopAudio, sendMessage]);
+
+  // Handle global session invalidation event from WebSocket close handler
+  useEffect(() => {
+    const handleSessionInvalid = () => {
+      console.warn("Session invalidated by server. Logging out.");
+      handleLogout();
+    };
+    window.addEventListener("ultron_session_invalid", handleSessionInvalid);
+    return () => {
+      window.removeEventListener("ultron_session_invalid", handleSessionInvalid);
+    };
+  }, [handleLogout]);
 
   const handleStopProcessing = useCallback(() => {
     // 1. Stop local audio player & clear queue
@@ -91,9 +152,9 @@ function ChatPage() {
     }
   }, [isOnline]);
 
-  // Control VAD activity dynamically depending on connection online state and configuration setting
+  // Control VAD activity dynamically depending on connection online state, configuration setting, and authentication
   useEffect(() => {
-    if (isOnline && isVadEnabled) {
+    if (isOnline && isVadEnabled && isAuthenticated) {
       if (start) {
         start();
         console.log("VAD: Connection established. Speech detection active.");
@@ -101,13 +162,13 @@ function ChatPage() {
     } else {
       if (pause) {
         pause();
-        console.log("VAD: Connection offline or disabled. Speech detection suspended.");
+        console.log("VAD: Connection offline, disabled, or unauthenticated. Speech detection suspended.");
       }
       if (probabilityRef) {
         probabilityRef.current = 0; // Keep the VAD telemetry graph flat at 0%
       }
     }
-  }, [isOnline, isVadEnabled, start, pause, probabilityRef]);
+  }, [isOnline, isVadEnabled, isAuthenticated, start, pause, probabilityRef]);
 
   const handleSendMessage = (text) => {
     if (!text.trim() || !isOnline) return;
@@ -176,10 +237,17 @@ function ChatPage() {
             onToggleVad={setIsVadEnabled}
             isAudioEnabled={isAudioEnabled}
             onToggleAudio={setIsAudioEnabled}
+            username={username}
+            onLogout={handleLogout}
           />
         </section>
 
       </div>
+
+      {/* Glassmorphism Login Popover overlay */}
+      {!isAuthenticated && (
+        <LoginModal onLoginSuccess={handleLoginSuccess} />
+      )}
     </>
   );
 }

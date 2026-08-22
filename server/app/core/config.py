@@ -14,6 +14,7 @@ class Settings:
     # Supports both standard SERVER_HOST and the SEVER_HOST typo found in .env
     SERVER_HOST: str = os.getenv("SEVER_HOST", os.getenv("SERVER_HOST", "127.0.0.1"))
     SERVER_PORT: int = int(os.getenv("SERVER_PORT", 8000))
+    DATABASE_URL: str = os.getenv("DATABASE_URL","")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL","groq/compound")
     DISCORD_WEBHOOK_URL: str = os.getenv("DISCORD_WEBHOOK_URL")

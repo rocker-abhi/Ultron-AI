@@ -28,11 +28,26 @@ async def websocket_endpoint(websocket: WebSocket):
     client_port = websocket.client.port if websocket.client else "unknown"
     logger.info(f"Incoming WebSocket connection request from {client_host}:{client_port}")
     
-    await manager.connect(websocket)
+    session_id = websocket.query_params.get("session_id")
+    tab_id = websocket.query_params.get("tab_id")
+
+    from app.core.session import session_manager
+    session = session_manager.get_session(session_id) if session_id else None
+
+    if not session or session.tab_id != tab_id:
+        logger.warning(f"WebSocket connection rejected: invalid session or tab ID mismatch. Session: {session_id}, Tab: {tab_id}")
+        await websocket.accept()
+        await websocket.close(code=4001, reason="Invalid session or tab ID mismatch.")
+        return
+
+    await manager.connect(websocket, session_id)
     try:
         while True:
             data = await websocket.receive_text()
             logger.info(f"Received message from {client_host}:{client_port} -> {data}")
+            
+            # Keep session alive on each received packet
+            session_manager.get_session(session_id)
             
             try:
                 # raise Exception("Testing Discord Bot")

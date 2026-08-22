@@ -20,7 +20,9 @@ function ChatWindow({
   isVadEnabled,
   onToggleVad,
   isAudioEnabled,
-  onToggleAudio
+  onToggleAudio,
+  username,
+  onLogout
 }) {
   const [inputText, setInputText] = useState("");
 
@@ -66,6 +68,19 @@ function ChatWindow({
               <span className="slider"></span>
             </label>
           </div>
+          {username && (
+            <div className="toggle-container" title={`Logged in as ${username}`}>
+              <span className="user-badge">@{username}</span>
+              <button 
+                type="button" 
+                className="logout-btn" 
+                onClick={onLogout}
+                title="Sign out of current session"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
